@@ -27,7 +27,72 @@
     <title>React App</title>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    
+  <script>
+      const API_KEY = '804b8fe533msh17dcd1588d8b93cp1964e0jsnb7782fde64c9';
+      const API_ENDPOINT = 'https://on-hold-audio-messages.p.rapidapi.com';
+      const recordButton = document.getElementById('recordButton');
+      const recordingIcon = document.getElementById('recordingIcon');
+      const sendButton = document.getElementById('sendButton');
+      let mediaRecorder;
+      let recordedChunks = [];
+  
+      recordButton.addEventListener('click', async () => {
+          try {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              mediaRecorder = new MediaRecorder(stream);
+  
+              mediaRecorder.ondataavailable = event => {
+                  if (event.data.size > 0) {
+                      recordedChunks.push(event.data);
+                  }
+              };
+  
+              mediaRecorder.onstop = async () => {
+                  const audioBlob = new Blob(recordedChunks, { type: 'audio/wav' });
+                  const formData = new FormData();
+                  formData.append('audio', audioBlob, 'recorded.wav');
+  
+                  try {
+                      const response = await fetch(API_ENDPOINT, {
+                          method: 'POST',
+                          headers: {
+                              'Authorization': `Bearer ${API_KEY}`
+                          },
+                          body: formData
+                      });
+  
+                      if (response.ok) {
+                          console.log('Audio uploaded successfully.');
+                      } else {
+                          console.error('Error uploading audio:', response.statusText);
+                      }
+                  } catch (error) {
+                      console.error('Error uploading audio:', error);
+                  }
+  
+                  recordedChunks = []; // Clear recorded chunks
+                  recordButton.disabled = false;
+                  recordingIcon.style.display = 'none';
+                  sendButton.style.display = 'none';
+              };
+  
+              mediaRecorder.start();
+              recordButton.disabled = true;
+              recordingIcon.style.display = 'inline';
+          } catch (error) {
+              console.error('Error accessing microphone:', error);
+          }
+      });
+  
+      sendButton.addEventListener('click', () => {
+          if (mediaRecorder && mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+          }
+      });
+  </script>
+  
     <div id="root"></div>
     <!--
       This HTML file is a template.

@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef} from "react";
 import ScrollToBottom from "react-scroll-to-bottom";
 
 function Chat({ socket, username, room }) {
   const [currentMessage, setCurrentMessage] = useState("");
   const [messageList, setMessageList] = useState([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorder = useRef(null);
 
   const sendMessage = async () => {
     if (currentMessage !== "") {
@@ -27,7 +29,49 @@ function Chat({ socket, username, room }) {
     socket.on("receive_message", (data) => {
       setMessageList((list) => [...list, data]);
     });
+
+    socket.on("receive_audio", (audioData) => {
+      const audioBlob = new Blob([new Uint8Array(atob(audioData).split("").map((c) => c.charCodeAt(0)))]);
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      audio.play();
+    });
+
   }, [socket]);
+  const buttonContainerStyle = {
+    display: "flex",
+    alignItems: "center",
+  };
+    const startRecording = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder.current = new MediaRecorder(stream);
+    const audioChunks = [];
+
+    mediaRecorder.current.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+
+    mediaRecorder.current.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Audio = reader.result.split(",")[1];
+        socket.emit("send_audio", { audio: base64Audio, room });
+      };
+      reader.readAsDataURL(audioBlob);
+    };
+
+    mediaRecorder.current.start();
+    setIsRecording(true);
+    };
+
+    const stopRecording = () => {
+    if (mediaRecorder.current) {
+      mediaRecorder.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+
 
   return (
     <div className="chat-window">
@@ -69,9 +113,21 @@ function Chat({ socket, username, room }) {
           }}
         />
         <button onClick={sendMessage}>&#9658;</button>
+
+       
+        {isRecording ? (
+          <button onClick={stopRecording}>&#9724;</button>
+        ) : (
+          <button onClick={startRecording}>&#9899;</button>
+          
+        )
+        }
       </div>
+
     </div>
   );
+
 }
+
 
 export default Chat;
