@@ -6,6 +6,7 @@ function Chat({ socket, username, room }) {
   const [messageList, setMessageList] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorder = useRef(null);
+  const audioChunks = [];
 
   const sendMessage = async () => {
     if (currentMessage !== "") {
@@ -42,26 +43,33 @@ function Chat({ socket, username, room }) {
     alignItems: "center",
   };
     const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder.current = new MediaRecorder(stream);
-    const audioChunks = [];
-
-    mediaRecorder.current.ondataavailable = (event) => {
-      audioChunks.push(event.data);
-    };
-
-    mediaRecorder.current.onstop = () => {
-      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64Audio = reader.result.split(",")[1];
-        socket.emit("send_audio", { audio: base64Audio, room });
-      };
-      reader.readAsDataURL(audioBlob);
-    };
-
-    mediaRecorder.current.start();
-    setIsRecording(true);
+      if (currentMessage !== "" || mediaRecorder.current) {
+        if (mediaRecorder.current) {
+          mediaRecorder.current.stop();
+          setIsRecording(false);
+        }
+    
+        const messageData = {
+          room: room,
+          author: username,
+          message: currentMessage,
+          time: `${new Date(Date.now()).getHours()}:${new Date(Date.now()).getMinutes()}`,
+        };
+    
+        if (mediaRecorder.current) {
+          const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64Audio = reader.result.split(",")[1];
+            socket.emit("send_audio", { audio: base64Audio, room });
+          };
+          reader.readAsDataURL(audioBlob);
+        }
+    
+        await socket.emit("send_message", messageData);
+        setMessageList((list) => [...list, messageData]);
+        setCurrentMessage("");
+      }
     };
 
     const stopRecording = () => {
@@ -114,7 +122,8 @@ function Chat({ socket, username, room }) {
         />
         <button onClick={sendMessage}>&#9658;</button>
 
-       
+
+        <div style={buttonContainerStyle}>
         {isRecording ? (
           <button onClick={stopRecording}>&#9724;</button>
         ) : (
@@ -123,7 +132,10 @@ function Chat({ socket, username, room }) {
         )
         }
       </div>
+      </div>
+      
 
+      
     </div>
   );
 
