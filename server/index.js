@@ -26,6 +26,10 @@ io.on("connection", (socket) => {
     socket.to(data.room).emit("receive_message", data);
   });
 
+  socket.on("send_audio", (audioData) => {
+    // Broadcast the audio data to all clients in the same room
+    socket.to(audioData.room).emit("receive_audio", audioData.audio);
+  });
   socket.on("disconnect", () => {
     console.log("User Disconnected", socket.id);
   });

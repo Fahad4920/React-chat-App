@@ -43,6 +43,19 @@ function Chat({ socket, username, room }) {
     alignItems: "center",
   };
     const startRecording = async () => {
+      console.log("Recording button clicked");
+
+      const constraints = { audio: true };
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("getUserMedia success:", stream);
+        mediaRecorder.current = new MediaRecorder(stream);
+        console.log("MediaRecorder setup:", mediaRecorder.current);
+        // Rest of the code
+      } catch (error) {
+        console.error("getUserMedia error:", error);
+      }
+
       if (currentMessage !== "" || mediaRecorder.current) {
         if (mediaRecorder.current) {
           mediaRecorder.current.stop();
@@ -70,15 +83,31 @@ function Chat({ socket, username, room }) {
         setMessageList((list) => [...list, messageData]);
         setCurrentMessage("");
       }
-    };
+  };
 
-    const stopRecording = () => {
+  const stopRecording = () => {
     if (mediaRecorder.current) {
       mediaRecorder.current.stop();
       setIsRecording(false);
+  
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Audio = reader.result.split(",")[1];
+        socket.emit("send_audio", { audio: base64Audio, room });
+      };
+      reader.readAsDataURL(audioBlob);
+  
+      audioChunks.length = 0; // Clear the audio chunks for the next recording
     }
   };
 
+  const handleAudioReceived = (audioData) => {
+    const audioBlob = new Blob([new Uint8Array(atob(audioData).split("").map((c) => c.charCodeAt(0)))]);
+    const audio = new Audio(URL.createObjectURL(audioBlob));
+    audio.play();
+  };
+  
 
 
   return (
@@ -126,16 +155,16 @@ function Chat({ socket, username, room }) {
         <div style={buttonContainerStyle}>
         {isRecording ? (
           <button onClick={stopRecording}>&#9724;</button>
-        ) : (
-          <button onClick={startRecording}>&#9899;</button>
-          
-        )
+          ) : (
+            <button onClick={startRecording}>&#9899;</button>
+
+          )
         }
       </div>
       </div>
-      
 
-      
+
+
     </div>
   );
 
