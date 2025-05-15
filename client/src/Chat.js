@@ -61,7 +61,8 @@ function Chat({ socket, username, room }) {
           mediaRecorder.current.stop();
           setIsRecording(false);
         }
-    
+
+        
         const messageData = {
           room: room,
           author: username,
@@ -85,6 +86,8 @@ function Chat({ socket, username, room }) {
       }
   };
 
+
+  
   const stopRecording = () => {
     if (mediaRecorder.current) {
       mediaRecorder.current.stop();
