@@ -8,6 +8,8 @@ function Chat({ socket, username, room }) {
   const mediaRecorder = useRef(null);
   const audioChunks = [];
 
+
+  
   const sendMessage = async () => {
     if (currentMessage !== "") {
       const messageData = {
