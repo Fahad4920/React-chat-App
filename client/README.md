@@ -1,4 +1,4 @@
-# Getting Started with Create React  App
+# Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/Fahad4920/create-react-app).
 
