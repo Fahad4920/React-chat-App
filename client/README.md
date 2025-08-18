@@ -4,8 +4,6 @@ This project was bootstrapped with [Create React App](https://github.com/Fahad49
 
 ## Available Scripts
 
-
-
 In the project directory, you can run:
 
 ### `yarn start` or 'npm start'
